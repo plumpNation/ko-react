@@ -1,4 +1,4 @@
-import ko, { isSubscribable } from "knockout";
+import ko /*, { isSubscribable }*/ from "knockout";
 import React, { useState } from "react";
 import { act } from "react-dom/test-utils";
 import useComputed from "../../src/hooks/useComputed";
@@ -9,106 +9,83 @@ test("nested observables", () => {
     const data = {
         persons: [
             {
-                name: ko.observable("Bob"),
-                age: ko.observable(30),
+                firstName: ko.observable("Bob"),
+                lastName: ko.observable("Ross"),
             },
         ]
     };
 
-    let forceUpdateCount = 0;
+    const getPersonNames = () => data.persons.map(person => person.firstName() + ' ' + person.lastName()).toString();
+
+    // let forceUpdateCount = 0;
     let computedCount = 0;
     let renderCount = 0;
 
-    const subscribablePersons = data.persons.flatMap(person => Object.values(person).filter(isSubscribable));
+    // We want any change to any observable to trigger a re-render
+    // const personSubscribables = data.persons.flatMap(person => Object.values(person).filter(isSubscribable));
 
     const ArrayUI = () => {
         renderCount++;
 
-        const forceUpdate = useComputed(() => {
-            forceUpdateCount++;
-            subscribablePersons.forEach(x => x());
-            const rn = Math.random();
-            console.log("force update " + rn);
+        // const forceUpdate = useComputed(() => {
+        //     forceUpdateCount++;
 
-            return rn;
-        })
+        //     // By running the observable like this, we register the computed scope as a dependency.
+        //     personSubscribables.forEach(x => x());
+
+        //     const rn = Math.random();
+
+        //     console.log("force update " + rn);
+
+        //     return rn;
+        // })
 
         const sum = useComputed(() => {
             computedCount++;
 
-            return data
-                .persons
-                .map(x => x.age())
-                .reduce((a, b) => a + b, 0);
-        }, [forceUpdate]);
+            // console.log('forceUpdated ' + forceUpdate)
+
+            return getPersonNames();
+        }, []);
 
         return <div>{sum}</div>;
     };
 
     const element = mount(<ArrayUI />);
 
-    expect(element.text()).toBe("30");
+    expect(element.text()).toBe('Bob Ross');
 
     expect(computedCount).toBe(1);
     expect(renderCount).toBe(1);
-    expect(forceUpdateCount).toBe(1);
+    // expect(forceUpdateCount).toBe(1);
 
     act(() => {
-        data.persons[0].age(31);
+        // This makes no difference to the state of the component
+        data.persons.push({
+            firstName: ko.observable("Fred"),
+            lastName: ko.observable("Jones"),
+        })
+
+        // But by updating an existing observable that was already run in the useComputed, we trigger a re-render
+        data.persons[0].lastName("Perry");
     });
 
-    expect(element.text()).toBe("31");
+    expect(element.text()).toBe('Bob Perry,Fred Jones');
 
-    expect(computedCount).toBe(2); // 3
+    expect(computedCount).toBe(2);
     expect(renderCount).toBe(2);
-    expect(forceUpdateCount).toBe(2);
+    // expect(forceUpdateCount).toBe(2);
+
+    act(() => {
+        // But by updating an existing observable that was already run in the useComputed, we trigger a re-render
+        data.persons[1].lastName("Bingo");
+    });
+
+    expect(element.text()).toBe('Bob Perry,Fred Bingo');
+
+    expect(computedCount).toBe(3);
+    expect(renderCount).toBe(3);
 });
-
-// test("doesn't need a deps array to update", () => {
-//     class Person {
-//         public firstName: KnockoutObservable<string>;
-//         public lastName: KnockoutObservable<string>;
-
-//         constructor(firstName: string, lastName: string) {
-//             this.firstName = ko.observable(firstName);
-//             this.lastName = ko.observable(lastName);
-//         }
-//     }
-
-//     class Persons {
-//         persons: Person[] = [
-//             new Person("Bob", "Ross"),
-//             new Person("Fred", "Perry"),
-//         ];
-
-//         shouldBeIgnored = "ignored";
-
-//         unrelated = ko.observable(Math.random());
-//     }
-
-//     const persons = new Persons();
-
-//     const deps = persons.persons.flatMap(person => Object.values(person).filter(isSubscribable));
-
-//     // 2 people, 2 names each
-//     expect(deps.length).toBe(4);
-
-//     let computedCount = 0;
-
-//     const PersonsUI = () => {
-//         const names = useComputed(() => {
-//             computedCount++;
-
-//             return persons.persons;
-//         }, [deps]);
-
-//         return <div>{name}</div>;
-//     };
-
-//     const element = mount(<PersonsUI />);
-
-//     expect(element.text()).toBe("bob rossfred perry 1");
-// });
 
 test("doesn't need a deps array to update", () => {
     const firstName = ko.observable("bob");
