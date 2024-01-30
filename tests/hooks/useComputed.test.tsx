@@ -1,8 +1,154 @@
-import ko from "knockout";
+import ko, { isSubscribable } from "knockout";
 import React, { useState } from "react";
 import { act } from "react-dom/test-utils";
 import useComputed from "../../src/hooks/useComputed";
+import useObservable from "../../src/hooks/useObservable";
 import { mount } from "../enzyme";
+
+test("nested observables", () => {
+    const data = {
+        persons: [
+            {
+                name: ko.observable("Bob"),
+                age: ko.observable(30),
+            },
+        ]
+    };
+
+    let forceUpdateCount = 0;
+    let computedCount = 0;
+    let renderCount = 0;
+
+    const subscribablePersons = data.persons.flatMap(person => Object.values(person).filter(isSubscribable));
+
+    const ArrayUI = () => {
+        renderCount++;
+
+        const forceUpdate = useComputed(() => {
+            forceUpdateCount++;
+            subscribablePersons.forEach(x => x());
+            const rn = Math.random();
+            console.log("force update " + rn);
+
+            return rn;
+        })
+
+        const sum = useComputed(() => {
+            computedCount++;
+
+            return data
+                .persons
+                .map(x => x.age())
+                .reduce((a, b) => a + b, 0);
+        }, [forceUpdate]);
+
+        return <div>{sum}</div>;
+    };
+
+    const element = mount(<ArrayUI />);
+
+    expect(element.text()).toBe("30");
+
+    expect(computedCount).toBe(1);
+    expect(renderCount).toBe(1);
+    expect(forceUpdateCount).toBe(1);
+
+    act(() => {
+        data.persons[0].age(31);
+    });
+
+    expect(element.text()).toBe("31");
+
+    expect(computedCount).toBe(2); // 3
+    expect(renderCount).toBe(2);
+    expect(forceUpdateCount).toBe(2);
+});
+
+// test("doesn't need a deps array to update", () => {
+//     class Person {
+//         public firstName: KnockoutObservable<string>;
+//         public lastName: KnockoutObservable<string>;
+
+//         constructor(firstName: string, lastName: string) {
+//             this.firstName = ko.observable(firstName);
+//             this.lastName = ko.observable(lastName);
+//         }
+//     }
+
+//     class Persons {
+//         persons: Person[] = [
+//             new Person("Bob", "Ross"),
+//             new Person("Fred", "Perry"),
+//         ];
+
+//         shouldBeIgnored = "ignored";
+
+//         unrelated = ko.observable(Math.random());
+//     }
+
+//     const persons = new Persons();
+
+//     const deps = persons.persons.flatMap(person => Object.values(person).filter(isSubscribable));
+
+//     // 2 people, 2 names each
+//     expect(deps.length).toBe(4);
+
+//     let computedCount = 0;
+
+//     const PersonsUI = () => {
+//         const names = useComputed(() => {
+//             computedCount++;
+
+//             return persons.persons;
+//         }, [deps]);
+
+//         return <div>{name}</div>;
+//     };
+
+//     const element = mount(<PersonsUI />);
+
+//     expect(element.text()).toBe("bob rossfred perry 1");
+// });
+
+test("doesn't need a deps array to update", () => {
+    const firstName = ko.observable("bob");
+    const lastName = ko.observable("ross");
+    const unrelated = ko.observable(Math.random());
+
+    let computedCount = 0;
+
+    const Name = () => {
+        const unrelatedValue = useObservable(unrelated);
+
+        const name = useComputed(() => {
+            computedCount++;
+            return firstName() + ' ' + lastName() + ' ' + computedCount;
+        }, [unrelatedValue]);
+
+        return <div>{name}</div>;
+    };
+
+    const element = mount(<Name />);
+
+    expect(computedCount).toBe(1);
+    expect(element.text()).toBe("bob ross 1");
+
+    firstName("fred");
+
+    expect(computedCount).toBe(2);
+    expect(element.text()).toBe("fred ross 2");
+
+    lastName("perry");
+
+
+    expect(computedCount).toBe(3);
+    expect(element.text()).toBe("fred perry 3");
+
+    unrelated(Math.random());
+
+    expect(computedCount).toBe(4);
+    expect(element.text()).toBe("fred perry 4");
+});
 
 test("can compute JSX based on observables", () => {
     interface ComponentProps {
