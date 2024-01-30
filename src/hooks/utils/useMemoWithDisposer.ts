@@ -1,10 +1,12 @@
 import { useMemo, useRef, useEffect } from "react";
 
+const noDeps = [] as unknown[];
+
 // Like useMemo, but calls `disposer` on the previously memoized values when they're replaced
 export default function useMemoWithDisposer<T>(
     memoizer: () => T,
     disposer: (t: T) => void,
-    deps: any[] | undefined,
+    deps?: unknown[] | null,
 ) {
     // Stores the previous value so that it can be disposed
     const memoizedVal = useRef<T | undefined>(undefined);
@@ -17,5 +19,5 @@ export default function useMemoWithDisposer<T>(
             disposer(memoizedVal.current);
         }
         return (memoizedVal.current = memoizer());
-    }, deps);
+    }, deps || noDeps);
 }
