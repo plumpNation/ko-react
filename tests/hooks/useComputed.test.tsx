@@ -1,4 +1,4 @@
-import ko, { KnockoutObservable } from "knockout";
+import ko from "knockout";
 import React, { useState } from "react";
 import { act } from "react-dom/test-utils";
 import useComputed from "../../src/hooks/useComputed";
@@ -59,7 +59,7 @@ test("can be used with closure values", () => {
         // NOT passing a dependency array: behaves correctly, but may compute more often than necessary
         return useComputed(() => (
             <div onClick={() => setCount(count + 1)}>Value is {count}</div>
-        ));
+        ), [count]);
     };
     const element = mount(<Counter />);
     act(() => {
