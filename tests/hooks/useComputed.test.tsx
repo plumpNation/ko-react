@@ -1,4 +1,4 @@
-import ko from "knockout";
+import ko, { KnockoutObservable } from "knockout";
 import React, { useState } from "react";
 import { act } from "react-dom/test-utils";
 import useComputed from "../../src/hooks/useComputed";
@@ -40,7 +40,7 @@ test("doesn't call the render or computed function unnecessarily", () => {
         return useComputed(() => {
             computedCount++;
             return <div>{c()}</div>;
-        }, []);
+        });
     };
     const count = ko.observable(0);
     mount(<Component c={count} />);

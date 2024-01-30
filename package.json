@@ -20,7 +20,7 @@
   "author": "Retsam19",
   "license": "MIT",
   "dependencies": {
-    "@types/knockout": "^3.4.63"
+    "@types/knockout": "3.4.77"
   },
   "devDependencies": {
     "@types/enzyme": "^3.1.10",
@@ -36,7 +36,7 @@
     "husky": "^1.3.1",
     "jest": "^28.1.3",
     "jest-environment-jsdom": "^29.0.0",
-    "knockout": "3.x",
+    "knockout": "3.4.2",
     "prettier": "^2.7.1",
     "react": "^16.7.0",
     "react-dom": "^16.8.0",
