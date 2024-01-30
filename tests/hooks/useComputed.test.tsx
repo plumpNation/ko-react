@@ -56,7 +56,7 @@ test("doesn't call the render or computed function unnecessarily", () => {
 test("can be used with closure values", () => {
     const Counter = () => {
         const [count, setCount] = useState(0);
-        // NOT passing a dependency array: behaves correctly, but may compute more often than necessary
+
         return useComputed(() => (
             <div onClick={() => setCount(count + 1)}>Value is {count}</div>
         ), [count]);
